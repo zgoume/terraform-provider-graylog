@@ -30,5 +30,11 @@ func create(d *schema.ResourceData, m interface{}) error {
 		return fmt.Errorf("failed to create a index set: %w", err)
 	}
 	d.SetId(is[keyID].(string))
+
+	if v, ok := d.GetOk("default"); ok && v.(bool) {
+		if _, err := cl.IndexSet.SetDefault(ctx, d.Id()); err != nil {
+			return fmt.Errorf("failed to set index set as default: %w", err)
+		}
+	}
 	return nil
 }

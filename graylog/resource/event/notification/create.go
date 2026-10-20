@@ -20,12 +20,20 @@ func create(d *schema.ResourceData, m interface{}) error {
 		return err
 	}
 
+	removeSecretKeys(data)
+
 	payload := data
 	if cl.APIVersion == "v7" {
 		payload = map[string]interface{}{
 			"entity":        data,
 			"share_request": map[string]interface{}{},
 		}
+	}
+
+	config, ok := data[keyConfig].(map[string]interface{})
+	if ok {
+		secretPayload := getSecretPayloadFromResourceData(d)
+		mergeSecretsIntoConfig(config, secretPayload)
 	}
 
 	ds, _, err := cl.EventNotification.Create(ctx, payload)

@@ -30,5 +30,12 @@ func update(d *schema.ResourceData, m interface{}) error {
 	if _, _, err := cl.IndexSet.Update(ctx, d.Id(), data); err != nil {
 		return fmt.Errorf("failed to update a index set %s: %w", d.Id(), err)
 	}
+
+	newVal, oldVal := d.GetChange("default")
+	if newVal.(bool) && newVal.(bool) != oldVal.(bool) {
+		if _, err := cl.IndexSet.SetDefault(ctx, d.Id()); err != nil {
+			return fmt.Errorf("failed to update default setting: %w", err)
+		}
+	}
 	return nil
 }

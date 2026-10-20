@@ -20,6 +20,13 @@ func update(d *schema.ResourceData, m interface{}) error {
 		return err
 	}
 	data[keyID] = d.Id()
+	removeSecretKeys(data)
+
+	config, ok := data[keyConfig].(map[string]interface{})
+	if ok {
+		secretPayload := getSecretSetPayload(d)
+		mergeSecretsIntoConfig(config, secretPayload)
+	}
 
 	if _, _, err := cl.EventNotification.Update(ctx, d.Id(), data); err != nil {
 		return fmt.Errorf("failed to update a event notification %s: %w", d.Id(), err)

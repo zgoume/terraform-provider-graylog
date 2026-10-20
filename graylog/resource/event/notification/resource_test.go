@@ -201,3 +201,255 @@ EOF
 		},
 	})
 }
+
+func TestAccEventNotificationSecrets(t *testing.T) {
+	if err := testutil.SetEnv(); err != nil {
+		t.Fatal(err)
+	}
+
+	var notificationBody string
+
+	postURLPath := "/api/events/notifications"
+	resourceURLPath := postURLPath + "/5ea3c1d72ab79c00127567fe"
+	resourceName := "graylog_event_notification.http"
+
+	getRoute := flute.Route{
+		Name: "get a event notification",
+		Matcher: flute.Matcher{
+			Method: "GET",
+		},
+		Tester: flute.Tester{
+			Path:         resourceURLPath,
+			PartOfHeader: testutil.Header(),
+		},
+		Response: flute.Response{
+			Response: func(req *http.Request) (*http.Response, error) {
+				return &http.Response{
+					StatusCode: 200,
+					Body:       ioutil.NopCloser(strings.NewReader(notificationBody)),
+				}, nil
+			},
+		},
+	}
+
+	createRoute := flute.Route{
+		Name: "create with api_secret",
+		Matcher: flute.Matcher{
+			Method: "POST",
+		},
+		Tester: flute.Tester{
+			Path:         postURLPath,
+			PartOfHeader: testutil.Header(),
+			BodyJSONString: `{
+  "title": "http",
+  "config": {
+    "type": "http-notification-v1",
+    "url": "http://example.com",
+    "api_secret": "my-secret-key"
+  }
+}`,
+			Test: func(t *testing.T, req *http.Request, svc flute.Service, route flute.Route) {
+				notificationBody = `{
+  "id": "5ea3c1d72ab79c00127567fe",
+  "title": "http",
+  "config": {
+    "type": "http-notification-v1",
+    "url": "http://example.com"
+  }
+}`
+			},
+		},
+		Response: flute.Response{
+			Base: http.Response{
+				StatusCode: 200,
+			},
+			BodyString: `{
+  "id": "5ea3c1d72ab79c00127567fe",
+  "title": "http",
+  "config": {
+    "type": "http-notification-v1",
+    "url": "http://example.com"
+  }
+}`,
+		},
+	}
+
+	deleteRoute := flute.Route{
+		Name: "delete a event notification",
+		Matcher: flute.Matcher{
+			Method: "DELETE",
+		},
+		Tester: flute.Tester{
+			Path:         resourceURLPath,
+			PartOfHeader: testutil.Header(),
+		},
+		Response: flute.Response{
+			Base: http.Response{
+				StatusCode: 204,
+			},
+		},
+	}
+
+	deleteValueRoute := flute.Route{
+		Name: "update delete api_secret",
+		Matcher: flute.Matcher{
+			Method: "PUT",
+		},
+		Tester: flute.Tester{
+			Path:         resourceURLPath,
+			PartOfHeader: testutil.Header(),
+			BodyJSONString: `{
+  "id": "5ea3c1d72ab79c00127567fe",
+  "title": "http",
+  "config": {
+    "type": "http-notification-v1",
+    "url": "http://example.com",
+    "api_secret": ""
+  }
+}`,
+			Test: func(t *testing.T, req *http.Request, svc flute.Service, route flute.Route) {
+				notificationBody = `{
+  "id": "5ea3c1d72ab79c00127567fe",
+  "title": "http",
+  "config": {
+    "type": "http-notification-v1",
+    "url": "http://example.com"
+  }
+}`
+			},
+		},
+		Response: flute.Response{
+			Base: http.Response{
+				StatusCode: 200,
+			},
+			BodyString: `{
+  "id": "5ea3c1d72ab79c00127567fe",
+  "title": "http",
+  "config": {
+    "type": "http-notification-v1",
+    "url": "http://example.com"
+  }
+}`,
+		},
+	}
+
+	setBasicAuthRoute := flute.Route{
+		Name: "update set basic_auth",
+		Matcher: flute.Matcher{
+			Method: "PUT",
+		},
+		Tester: flute.Tester{
+			Path:         resourceURLPath,
+			PartOfHeader: testutil.Header(),
+			BodyJSONString: `{
+  "id": "5ea3c1d72ab79c00127567fe",
+  "title": "http",
+  "config": {
+    "type": "http-notification-v1",
+    "url": "http://example.com",
+    "basic_auth": "user:pass"
+  }
+}`,
+			Test: func(t *testing.T, req *http.Request, svc flute.Service, route flute.Route) {
+				notificationBody = `{
+  "id": "5ea3c1d72ab79c00127567fe",
+  "title": "http",
+  "config": {
+    "type": "http-notification-v1",
+    "url": "http://example.com"
+  }
+}`
+			},
+		},
+		Response: flute.Response{
+			Base: http.Response{
+				StatusCode: 200,
+			},
+			BodyString: `{
+  "id": "5ea3c1d72ab79c00127567fe",
+  "title": "http",
+  "config": {
+    "type": "http-notification-v1",
+    "url": "http://example.com"
+  }
+}`,
+		},
+	}
+
+	resource.Test(t, resource.TestCase{
+		Providers: testutil.SingleResourceProviders("graylog_event_notification", Resource()),
+		Steps: []resource.TestStep{
+			{
+				ResourceName: resourceName,
+				PreConfig: func() {
+					testutil.SetHTTPClient(t, getRoute, createRoute, deleteRoute)
+				},
+				Config: `
+resource "graylog_event_notification" "http" {
+  title       = "http"
+  description = "http notification with secret"
+
+  api_secret = "my-secret-key"
+
+  config = <<EOF
+{
+  "type": "http-notification-v1",
+  "url": "http://example.com"
+}
+EOF
+}
+`,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceName, "title", "http"),
+					resource.TestCheckResourceAttr(resourceName, "api_secret", "my-secret-key"),
+				),
+			},
+			{
+				ResourceName: resourceName,
+				PreConfig: func() {
+					testutil.SetHTTPClient(t, getRoute, deleteValueRoute, deleteRoute)
+				},
+				Config: `
+resource "graylog_event_notification" "http" {
+  title       = "http"
+  description = "http notification without secret"
+
+  config = <<EOF
+{
+  "type": "http-notification-v1",
+  "url": "http://example.com"
+}
+EOF
+}
+`,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceName, "api_secret", ""),
+				),
+			},
+			{
+				ResourceName: resourceName,
+				PreConfig: func() {
+					testutil.SetHTTPClient(t, getRoute, setBasicAuthRoute, deleteRoute)
+				},
+				Config: `
+resource "graylog_event_notification" "http" {
+  title       = "http"
+  description = "http notification with basic auth"
+
+  basic_auth = "user:pass"
+
+  config = <<EOF
+{
+  "type": "http-notification-v1",
+  "url": "http://example.com"
+}
+EOF
+}
+`,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceName, "basic_auth", "user:pass"),
+				),
+			},
+		},
+	})
+}

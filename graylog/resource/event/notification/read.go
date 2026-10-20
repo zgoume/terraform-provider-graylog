@@ -21,5 +21,6 @@ func read(d *schema.ResourceData, m interface{}) error {
 		return util.HandleGetResourceError(
 			d, resp, fmt.Errorf("failed to get a event notification %s: %w", d.Id(), err))
 	}
+	handleSecretRead(d, data)
 	return setDataToResourceData(d, data)
 }

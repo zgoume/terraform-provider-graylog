@@ -32,6 +32,16 @@ func Resource() *schema.Resource {
 				DiffSuppressFunc: util.SchemaDiffSuppressJSONString,
 				ValidateFunc:     util.ValidateIsJSON,
 			},
+			"api_secret": {
+				Type:      schema.TypeString,
+				Optional:  true,
+				Sensitive: true,
+			},
+			"basic_auth": {
+				Type:      schema.TypeString,
+				Optional:  true,
+				Sensitive: true,
+			},
 		},
 	}
 }

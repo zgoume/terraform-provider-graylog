@@ -115,3 +115,35 @@ func (cl Client) Delete(ctx context.Context, id string) (*http.Response, error) 
 	})
 	return resp, err
 }
+
+func (cl Client) SetDefault(ctx context.Context, id string) (*http.Response, error) {
+	if id == "" {
+		return nil, errors.New("id is required")
+	}
+	resp, err := cl.Client.Call(ctx, httpclient.CallParams{
+		Method: "PUT",
+		Path:   "/system/indices/index_sets/" + id + "/default",
+	})
+	return resp, err
+}
+
+func (cl Client) GetDefault(ctx context.Context, id string) (bool, error) {
+	if id == "" {
+		return false, errors.New("id is required")
+	}
+	body := map[string]interface{}{}
+	_, err := cl.Client.Call(ctx, httpclient.CallParams{
+		Method:       "GET",
+		Path:         "/system/indices/index_sets/" + id + "/default",
+		ResponseBody: &body,
+	})
+	if err != nil {
+		return false, err
+	}
+	if v, ok := body["default"]; ok {
+		if val, ok := v.(bool); ok {
+			return val, nil
+		}
+	}
+	return false, nil
+}
