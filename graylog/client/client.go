@@ -30,6 +30,7 @@ import (
 	"github.com/zahiar/terraform-provider-graylog/graylog/client/system/pipeline/connection"
 	"github.com/zahiar/terraform-provider-graylog/graylog/client/system/pipeline/pipeline"
 	"github.com/zahiar/terraform-provider-graylog/graylog/client/system/pipeline/rule"
+	"github.com/zahiar/terraform-provider-graylog/graylog/client/system/urlallowlist"
 	"github.com/zahiar/terraform-provider-graylog/graylog/client/user"
 	userToken "github.com/zahiar/terraform-provider-graylog/graylog/client/user/token"
 	"github.com/zahiar/terraform-provider-graylog/graylog/client/view"
@@ -64,6 +65,7 @@ type Client struct {
 	StreamOutput            streamOutput.Client
 	StreamRule              streamRule.Client
 	View                    view.Client
+	URLAllowList            urlallowlist.Client
 	User                    user.Client
 	UserToken               userToken.Client
 }
@@ -175,6 +177,9 @@ func New(m interface{}) (Client, error) {
 			Client: httpClient,
 		},
 		AuthzSharesEntities: authzSharesEntities.Client{
+			Client: httpClient,
+		},
+		URLAllowList: urlallowlist.Client{
 			Client: httpClient,
 		},
 	}, nil

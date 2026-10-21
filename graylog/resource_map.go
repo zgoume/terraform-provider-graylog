@@ -3,6 +3,7 @@ package graylog
 import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
+	authzSharesEntities "github.com/zahiar/terraform-provider-graylog/graylog/resource/authz/shares/entities"
 	"github.com/zahiar/terraform-provider-graylog/graylog/resource/dashboard"
 	"github.com/zahiar/terraform-provider-graylog/graylog/resource/dashboard/position"
 	"github.com/zahiar/terraform-provider-graylog/graylog/resource/dashboard/widget"
@@ -27,9 +28,9 @@ import (
 	"github.com/zahiar/terraform-provider-graylog/graylog/resource/system/pipeline/connection"
 	"github.com/zahiar/terraform-provider-graylog/graylog/resource/system/pipeline/pipeline"
 	"github.com/zahiar/terraform-provider-graylog/graylog/resource/system/pipeline/rule"
+	"github.com/zahiar/terraform-provider-graylog/graylog/resource/system/urlallowlist"
 	"github.com/zahiar/terraform-provider-graylog/graylog/resource/user"
 	userToken "github.com/zahiar/terraform-provider-graylog/graylog/resource/user/token"
-	authzSharesEntities "github.com/zahiar/terraform-provider-graylog/graylog/resource/authz/shares/entities"
 )
 
 var resourceMap = map[string]*schema.Resource{
@@ -59,7 +60,8 @@ var resourceMap = map[string]*schema.Resource{
 	"graylog_stream_rule":                streamRule.Resource(),
 	"graylog_user":                       user.Resource(),
 	"graylog_user_token":                 userToken.Resource(),
-	"graylog_share_entity":								authzSharesEntities.Resource(),
+	"graylog_share_entity":               authzSharesEntities.Resource(),
+	"graylog_url_allow_list":             urlallowlist.Resource(),
 	// TODO support view
 	// "graylog_view":                       view.Resource(),
 }
