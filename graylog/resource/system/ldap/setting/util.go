@@ -156,14 +156,21 @@ func findRoleUUID(ctx context.Context, cl httpclient.Client, roleName string) (s
 	}
 
 	body := RolesResponse{}
-	_, err := cl.Call(ctx, httpclient.CallParams{
+	resp, err := cl.Call(ctx, httpclient.CallParams{
 		Method:       "GET",
 		Path:         "/api/authz/roles?page=1&per_page=100",
 		ResponseBody: &body,
 	})
 	if err != nil {
+		if httpErr, ok := err.(interface {
+			StatusCode() int
+			BodyByte() []byte
+		}); ok {
+			return "", fmt.Errorf("failed to fetch roles (HTTP %d): %s: %w", httpErr.StatusCode(), string(httpErr.BodyByte()), err)
+		}
 		return "", err
 	}
+	_ = resp
 
 	for _, role := range body.Roles {
 		if role.Name == roleName {
@@ -184,14 +191,21 @@ func fetchRoleMap(ctx context.Context, cl httpclient.Client) (map[string]string,
 	}
 
 	body := RolesResponse{}
-	_, err := cl.Call(ctx, httpclient.CallParams{
+	resp, err := cl.Call(ctx, httpclient.CallParams{
 		Method:       "GET",
 		Path:         "/api/authz/roles?page=1&per_page=100",
 		ResponseBody: &body,
 	})
 	if err != nil {
+		if httpErr, ok := err.(interface {
+			StatusCode() int
+			BodyByte() []byte
+		}); ok {
+			return nil, fmt.Errorf("failed to fetch roles (HTTP %d): %s: %w", httpErr.StatusCode(), string(httpErr.BodyByte()), err)
+		}
 		return nil, err
 	}
+	_ = resp
 
 	roleMap := make(map[string]string)
 	for _, role := range body.Roles {
