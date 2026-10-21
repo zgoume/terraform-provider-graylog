@@ -1,57 +1,56 @@
 # Resource: graylog_ldap_setting
 
 ## Example Usage
+
 ```hcl
 resource "graylog_ldap_setting" "system" {
-  enabled                   = false
-  system_username           = ""
-  ldap_uri                  = "ldap://localhost:389"
-  use_start_tls             = false
-  trust_all_certificates    = false
-  active_directory          = false
-  search_base               = ""
-  search_pattern            = ""
-  display_name_attribute    = ""
-  default_group             = "Reader"
-  group_mapping             = null
-  group_search_base         = null
-  group_id_attribute        = null
-  additional_default_groups = null
-  group_search_pattern      = null
+  title                     = "LDAP"
+  server_url                = "ldap://localhost:389"
+  authentication_username   = "cn=admin,dc=example,dc=com"
+  authentication_password   = "secret"
+  user_search_base          = "ou=users,dc=example,dc=com"
+  user_search_pattern       = "uid={0}"
+  user_name_attribute       = "uid"
+  default_role              = "Reader"
+  enabled                   = true
+  user_id_attribute         = "entryUUID"
+  email_attribute           = "mail"
+  full_name_attribute       = "cn"
+  start_tls                 = false
+  connect_timeout           = 5000
+  request_timeout           = 10000
 }
 ```
 
 ## Argument Reference
 
-* `system_username` - (Required) The data type is `string`.
-* `ldap_uri` - (Required) The data type is `string`.
-* `search_base` - (Required) The data type is `string`.
-* `search_pattern` - (Required) The data type is `string`.
-* `display_name_attribute` - (Required) The data type is `string`.
-* `default_group` - (Required) The data type is `string`.
-* `description` - (Optional) The data type is `string`.
-* `enabled` - (Optional) The data type is `bool`.
-* `use_start_tls` - (Optional) The data type is `bool`.
-* `trust_all_certificates` - (Optional) The data type is `bool`.
-* `active_directory` - (Optional) The data type is `bool`.
-* `group_search_base` - (Optional) The data type is `string`.
-* `group_id_attribute` - (Optional) The data type is `string`.
-* `group_search_pattern` - (Optional) The data type is `string`.
-* `group_mapping` - (Optional) The data type is `map[string]string`.
-* `system_password` - (Optional) The data type is `string`.
+* `title` - (Required) The data type is `string`. Title of the LDAP backend.
+* `server_url` - (Required) The data type is `string`. LDAP server URL (e.g., `ldap://localhost:389` or `ldaps://localhost:636`).
+* `authentication_username` - (Required) The data type is `string`. Username for binding to LDAP server.
+* `authentication_password` - (Required) The data type is `string`. Password for binding to LDAP server. Sensitive field.
+* `user_search_base` - (Required) The data type is `string`. Base DN for user searches.
+* `user_search_pattern` - (Required) The data type is `string`. Pattern for searching users (e.g., `uid={0}`).
+* `user_name_attribute` - (Required) The data type is `string`. LDAP attribute to use as the username.
+* `default_role` - (Required) The data type is `string`. Name of the default role to assign to LDAP users.
 
-Note that `system_passoword` is optional as Terraform schema but is required to create a LDAP setting.
-If we make `system_password` required as Terrafrom schema, we have to store `system_password` in the Terraform state file, which some users wouldn't want it.
+* `enabled` - (Optional) The data type is `bool`. Whether this backend is enabled. Default: `true`.
+* `user_id_attribute` - (Optional) The data type is `string`. LDAP attribute to use as the unique user ID.
+* `email_attribute` - (Optional) The data type is `string`. LDAP attribute to use as the email address.
+* `full_name_attribute` - (Optional) The data type is `string`. LDAP attribute to use as the full name.
+* `start_tls` - (Optional) The data type is `bool`. Whether to use StartTLS.
+* `connect_timeout` - (Optional) The data type is `int`. Connection timeout in milliseconds.
+* `request_timeout` - (Optional) The data type is `int`. Request timeout in milliseconds.
 
 ## Attributes Reference
 
-* `system_password_set` - The data type is `bool`.
+No additional attributes are exported.
 
 ## Import
 
-Unlike other resources, LDAP settings has no id,
-so when you import the LDAP settings, please specify some string as id.
+LDAP settings can be imported using any id (the resource uses a fixed internal id):
 
 ```console
 $ terraform import graylog_ldap_setting.foo bar
 ```
+
+Note: When importing, you must specify the `title` in your Terraform config to match the existing backend.

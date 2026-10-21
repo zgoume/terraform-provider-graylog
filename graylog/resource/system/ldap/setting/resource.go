@@ -17,80 +17,94 @@ func Resource() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			// required
-			"system_username": {
-				Type:     schema.TypeString,
-				Required: true,
+			"title": {
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "Title of the LDAP backend",
 			},
-			"ldap_uri": {
-				Type:     schema.TypeString,
-				Required: true,
+			"server_url": {
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "LDAP server URL (e.g., ldap://localhost:389 or ldaps://localhost:636)",
 			},
-			"search_base": {
-				Type:     schema.TypeString,
-				Required: true,
+			"authentication_username": {
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "Username for binding to LDAP server",
 			},
-			"search_pattern": {
-				Type:     schema.TypeString,
-				Required: true,
+			"authentication_password": {
+				Type:        schema.TypeString,
+				Required:    true,
+				Sensitive:   true,
+				Description: "Password for binding to LDAP server",
 			},
-			"display_name_attribute": {
-				Type:     schema.TypeString,
-				Required: true,
+			"user_search_base": {
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "Base DN for user searches",
 			},
-			"default_group": {
-				Type:     schema.TypeString,
-				Required: true,
+			"user_search_pattern": {
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "Pattern for searching users (e.g., uid={0})",
+			},
+			"user_name_attribute": {
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "LDAP attribute to use as the username",
+			},
+			"default_role": {
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "Name of the default role to assign to LDAP users",
 			},
 
 			// optional
-			// system_password is required to create the resource
-			"system_password": {
-				Type:      schema.TypeString,
-				Optional:  true,
-				Sensitive: true,
-				Computed:  true,
-			},
 			"enabled": {
-				Type:     schema.TypeBool,
-				Optional: true,
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     true,
+				Description: "Whether this backend is enabled",
 			},
-			"use_start_tls": {
-				Type:     schema.TypeBool,
-				Optional: true,
+			"user_id_attribute": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "LDAP attribute to use as the unique user ID",
 			},
-			"trust_all_certificates": {
-				Type:     schema.TypeBool,
-				Optional: true,
+			"email_attribute": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "LDAP attribute to use as the email address",
 			},
-			"active_directory": {
-				Type:     schema.TypeBool,
-				Optional: true,
+			"full_name_attribute": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "LDAP attribute to use as the full name",
 			},
-			"group_search_base": {
-				Type:     schema.TypeString,
-				Optional: true,
+			"referral": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "Referral mode (follow, ignore, etc.)",
 			},
-			"group_id_attribute": {
-				Type:     schema.TypeString,
-				Optional: true,
+			"trust_fingerprint": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "Trust fingerprint for the LDAP server certificate",
 			},
-			"group_search_pattern": {
-				Type:     schema.TypeString,
-				Optional: true,
+			"start_tls": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Description: "Whether to use StartTLS",
 			},
-			"group_mapping": {
-				Type:     schema.TypeMap,
-				Optional: true,
+			"connect_timeout": {
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Description: "Connection timeout in milliseconds",
 			},
-			"additional_default_groups": {
-				Type:     schema.TypeSet,
-				Optional: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
-			},
-			"system_password_set": {
-				Type:     schema.TypeBool,
-				Optional: true,
-				Computed: true,
+			"request_timeout": {
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Description: "Request timeout in milliseconds",
 			},
 		},
 	}

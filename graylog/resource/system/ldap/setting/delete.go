@@ -15,8 +15,23 @@ func destroy(d *schema.ResourceData, m interface{}) error {
 	if err != nil {
 		return err
 	}
-	if _, err := cl.LDAPSetting.Delete(ctx); err != nil {
-		return fmt.Errorf("failed to delete a LDAP setting: %w", err)
+
+	// List all backends to find the one matching the title
+	backends, _, err := cl.LDAPSetting.ListBackends(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to list LDAP backends: %w", err)
 	}
+
+	title := d.Get("title").(string)
+	for _, b := range backends {
+		if b["title"] == title {
+			backendID := b["id"].(string)
+			if _, err := cl.LDAPSetting.DeleteBackend(ctx, backendID); err != nil {
+				return fmt.Errorf("failed to delete a LDAP backend: %w", err)
+			}
+			return nil
+		}
+	}
+
 	return nil
 }

@@ -17,91 +17,110 @@ func TestAccLDAPSetting(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	settingBody := ""
+	var backendBody string
 
-	resourceURLPath := "/api/system/ldap/settings"
 	resourceName := "graylog_ldap_setting.system"
 
+	roleBody := `{
+  "total": 1,
+  "page": 1,
+  "per_page": 100,
+  "count": 1,
+  "roles": [
+    {
+      "id": "6ad77e0659a8b019391944c9",
+      "name": "Reader",
+      "description": "Grants basic permissions for every user (built-in)",
+      "permissions": ["messages:read"],
+      "read_only": true
+    }
+  ],
+  "query": "",
+  "grand_total": 1,
+  "context": {}
+}`
+
 	getRoute := flute.Route{
-		Name: "get a setting",
+		Name: "get backends",
 		Matcher: flute.Matcher{
 			Method: "GET",
 		},
 		Tester: flute.Tester{
-			Path:         resourceURLPath,
+			Path:         "/api/system/authentication/services/backends",
+			PartOfHeader: testutil.Header(),
+		},
+		Response: flute.Response{
+			Response: func(req *http.Request) (*http.Response, error) {
+				if backendBody == "" {
+					backendBody = `[
+  {
+    "id": "test-backend-id",
+    "title": "LDAP",
+    "type": "ldap",
+    "enabled": false,
+    "default_roles": ["6ad77e0659a8b019391944c9"],
+    "config": {
+      "servers": [{"host": "localhost", "port": 389}],
+      "transport_security": "none",
+      "type": "ldap",
+      "user_search_base": "",
+      "user_search_pattern": "",
+      "user_name_attribute": ""
+    },
+    "authentication_dn": ""
+  }
+]`
+				}
+				return &http.Response{
+					StatusCode: 200,
+					Body:       ioutil.NopCloser(strings.NewReader(backendBody)),
+				}, nil
+			},
+		},
+	}
+
+	rolesRoute := flute.Route{
+		Name: "get roles",
+		Matcher: flute.Matcher{
+			Method: "GET",
+		},
+		Tester: flute.Tester{
+			Path:         "/api/authz/roles",
 			PartOfHeader: testutil.Header(),
 		},
 		Response: flute.Response{
 			Response: func(req *http.Request) (*http.Response, error) {
 				return &http.Response{
 					StatusCode: 200,
-					Body:       ioutil.NopCloser(strings.NewReader(settingBody)),
+					Body:       ioutil.NopCloser(strings.NewReader(roleBody)),
 				}, nil
 			},
 		},
 	}
 
 	postRoute := flute.Route{
-		Name: "create a setting",
+		Name: "create a backend",
 		Matcher: flute.Matcher{
-			Method: "PUT",
+			Method: "POST",
 		},
 		Tester: flute.Tester{
-			Path:         resourceURLPath,
+			Path:         "/api/system/authentication/services/backends",
 			PartOfHeader: testutil.Header(),
-			BodyJSONString: `{
-  "enabled": false,
-  "system_username": "",
-  "system_password": "",
-  "ldap_uri": "ldap://localhost:389",
-  "use_start_tls": false,
-  "trust_all_certificates": false,
-  "active_directory": false,
-  "search_base": "",
-  "search_pattern": "",
-  "display_name_attribute": "",
-  "default_group": "Reader",
-  "group_mapping": {},
-  "group_search_base": "",
-  "group_id_attribute": "",
-  "additional_default_groups": [],
-  "group_search_pattern": ""
-}`,
-			Test: func(t *testing.T, req *http.Request, svc flute.Service, route flute.Route) {
-				settingBody = `{
-  "enabled": false,
-  "system_username": "",
-  "ldap_uri": "ldap://localhost:389",
-  "use_start_tls": false,
-  "trust_all_certificates": false,
-  "active_directory": false,
-  "search_base": "",
-  "search_pattern": "",
-  "display_name_attribute": "",
-  "default_group": "Reader",
-  "group_mapping": {},
-  "group_search_base": "",
-  "group_id_attribute": "",
-  "additional_default_groups": [],
-  "group_search_pattern": "",
-  "system_password_set": false
-}`
-			},
 		},
 		Response: flute.Response{
 			Base: http.Response{
-				StatusCode: 204,
+				StatusCode: 201,
 			},
 		},
 	}
 
 	deleteRoute := flute.Route{
-		Name: "delete a setting",
+		Name: "delete a backend",
 		Matcher: flute.Matcher{
 			Method: "DELETE",
 		},
 		Tester: flute.Tester{
-			Path:         resourceURLPath,
+			Path:         "/api/system/authentication/services/backends/test-backend-id",
 			PartOfHeader: testutil.Header(),
 		},
 		Response: flute.Response{
@@ -114,82 +133,41 @@ func TestAccLDAPSetting(t *testing.T) {
 	createStep := resource.TestStep{
 		ResourceName: resourceName,
 		PreConfig: func() {
-			testutil.SetHTTPClient(t, getRoute, postRoute, deleteRoute)
+			testutil.SetHTTPClient(t, getRoute, rolesRoute, postRoute, deleteRoute)
 		},
 		Config: `
 resource "graylog_ldap_setting" "system" {
+  title                     = "LDAP"
+  server_url                = "ldap://localhost:389"
+  authentication_username   = ""
+  authentication_password   = ""
+  user_search_base          = ""
+  user_search_pattern       = ""
+  user_name_attribute       = ""
+  default_role              = "Reader"
   enabled                   = false
-  system_username           = ""
-  ldap_uri                  = "ldap://localhost:389"
-  use_start_tls             = false
-  trust_all_certificates    = false
-  active_directory          = false
-  search_base               = ""
-  search_pattern            = ""
-  display_name_attribute    = ""
-  default_group             = "Reader"
-  group_mapping             = null
-  group_search_base         = null
-  group_id_attribute        = null
-  additional_default_groups = null
-  group_search_pattern      = null
 }
 `,
 		Check: resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr(resourceName, "ldap_uri", "ldap://localhost:389"),
+			resource.TestCheckResourceAttr(resourceName, "title", "LDAP"),
+			resource.TestCheckResourceAttr(resourceName, "server_url", "ldap://localhost:389"),
+			resource.TestCheckResourceAttr(resourceName, "default_role", "Reader"),
+			resource.TestCheckResourceAttr(resourceName, "enabled", "false"),
 		),
 	}
 
 	updateRoute := flute.Route{
-		Name: "update a setting",
+		Name: "update a backend",
 		Matcher: flute.Matcher{
 			Method: "PUT",
 		},
 		Tester: flute.Tester{
-			Path:         resourceURLPath,
+			Path:         "/api/system/authentication/services/backends/test-backend-id",
 			PartOfHeader: testutil.Header(),
-			BodyJSONString: `{
-  "enabled": false,
-  "system_username": "",
-  "system_password": "",
-  "ldap_uri": "ldap://localhost:489",
-  "use_start_tls": false,
-  "trust_all_certificates": false,
-  "active_directory": false,
-  "search_base": "",
-  "search_pattern": "",
-  "display_name_attribute": "",
-  "default_group": "Reader",
-  "group_mapping": {},
-  "group_search_base": "",
-  "group_id_attribute": "",
-  "additional_default_groups": [],
-  "group_search_pattern": ""
-}`,
-			Test: func(t *testing.T, req *http.Request, svc flute.Service, route flute.Route) {
-				settingBody = `{
-  "enabled": false,
-  "system_username": "",
-  "ldap_uri": "ldap://localhost:489",
-  "use_start_tls": false,
-  "trust_all_certificates": false,
-  "active_directory": false,
-  "search_base": "",
-  "search_pattern": "",
-  "display_name_attribute": "",
-  "default_group": "Reader",
-  "group_mapping": {},
-  "group_search_base": "",
-  "group_id_attribute": "",
-  "additional_default_groups": [],
-  "group_search_pattern": "",
-  "system_password_set": false
-}`
-			},
 		},
 		Response: flute.Response{
 			Base: http.Response{
-				StatusCode: 204,
+				StatusCode: 200,
 			},
 		},
 	}
@@ -197,29 +175,25 @@ resource "graylog_ldap_setting" "system" {
 	updateStep := resource.TestStep{
 		ResourceName: resourceName,
 		PreConfig: func() {
-			testutil.SetHTTPClient(t, getRoute, updateRoute, deleteRoute)
+			testutil.SetHTTPClient(t, getRoute, rolesRoute, updateRoute, deleteRoute)
 		},
 		Config: `
 resource "graylog_ldap_setting" "system" {
+  title                     = "LDAP"
+  server_url                = "ldaps://localhost:636"
+  authentication_username   = ""
+  authentication_password   = ""
+  user_search_base          = ""
+  user_search_pattern       = ""
+  user_name_attribute       = ""
+  default_role              = "Reader"
   enabled                   = false
-  system_username           = ""
-  ldap_uri                  = "ldap://localhost:489"
-  use_start_tls             = false
-  trust_all_certificates    = false
-  active_directory          = false
-  search_base               = ""
-  search_pattern            = ""
-  display_name_attribute    = ""
-  default_group             = "Reader"
-  group_mapping             = null
-  group_search_base         = null
-  group_id_attribute        = null
-  additional_default_groups = null
-  group_search_pattern      = null
 }
 `,
 		Check: resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr(resourceName, "ldap_uri", "ldap://localhost:489"),
+			resource.TestCheckResourceAttr(resourceName, "title", "LDAP"),
+			resource.TestCheckResourceAttr(resourceName, "server_url", "ldaps://localhost:636"),
+			resource.TestCheckResourceAttr(resourceName, "default_role", "Reader"),
 		),
 	}
 

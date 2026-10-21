@@ -16,10 +16,38 @@ func read(d *schema.ResourceData, m interface{}) error {
 	if err != nil {
 		return err
 	}
-	data, resp, err := cl.LDAPSetting.Get(ctx)
+
+	backends, resp, err := cl.LDAPSetting.ListBackends(ctx)
 	if err != nil {
 		return util.HandleGetResourceError(
-			d, resp, fmt.Errorf("failed to get a LDAP setting: %w", err))
+			d, resp, fmt.Errorf("failed to list LDAP backends: %w", err))
 	}
-	return setDataToResourceData(d, data)
+
+	title := d.Get("title").(string)
+	var backend map[string]interface{}
+	for _, b := range backends {
+		if b["title"] == title {
+			backend = b
+			break
+		}
+	}
+
+	if backend == nil {
+		d.SetId("")
+		return nil
+	}
+
+	roleMap, err := fetchRoleMap(ctx, cl.LDAPSetting.Client)
+	if err != nil {
+		return fmt.Errorf("failed to fetch roles: %w", err)
+	}
+
+	backend["_roleMap"] = roleMap
+
+	if err := setDataToResourceData(d, backend); err != nil {
+		return fmt.Errorf("failed to set data: %w", err)
+	}
+
+	d.SetId(ldapSettingID)
+	return nil
 }
