@@ -29,14 +29,12 @@ func (cl Client) Upsert(
 		return nil, nil, errors.New("request body is nil")
 	}
 
-	body := map[string]interface{}{}
 	resp, err := cl.Client.Call(ctx, httpclient.CallParams{
-		Method:       "PUT",
-		Path:         "/system/urlallowlist",
-		RequestBody:  data,
-		ResponseBody: &body,
+		Method:      "PUT",
+		Path:        "/system/urlallowlist",
+		RequestBody: data,
 	})
-	return body, resp, err
+	return map[string]interface{}{}, resp, err
 }
 
 func (cl Client) Delete(ctx context.Context) (*http.Response, error) {
@@ -45,10 +43,9 @@ func (cl Client) Delete(ctx context.Context) (*http.Response, error) {
 		"disabled": false,
 	}
 	resp, err := cl.Client.Call(ctx, httpclient.CallParams{
-		Method:       "PUT",
-		Path:         "/system/urlallowlist",
-		RequestBody:  body,
-		ResponseBody: &body,
+		Method:      "PUT",
+		Path:        "/system/urlallowlist",
+		RequestBody: body,
 	})
 	return resp, err
 }
