@@ -13,20 +13,23 @@ type Client struct {
 }
 
 func (cl Client) ListBackends(ctx context.Context) ([]map[string]interface{}, *http.Response, error) {
-	body := []map[string]interface{}{}
+	type ListResponse struct {
+		Backends []map[string]interface{} `json:"backends"`
+	}
+	var body ListResponse
 	resp, err := cl.Client.Call(ctx, httpclient.CallParams{
 		Method:       "GET",
-		Path:         "/api/system/authentication/services/backends",
+		Path:         "/system/authentication/services/backends",
 		ResponseBody: &body,
 	})
-	return body, resp, err
+	return body.Backends, resp, err
 }
 
 func (cl Client) GetBackend(ctx context.Context, backendID string) (map[string]interface{}, *http.Response, error) {
 	body := map[string]interface{}{}
 	resp, err := cl.Client.Call(ctx, httpclient.CallParams{
 		Method:       "GET",
-		Path:         "/api/system/authentication/services/backends/" + backendID,
+		Path:         "/system/authentication/services/backends/" + backendID,
 		ResponseBody: &body,
 	})
 	return body, resp, err
@@ -38,7 +41,7 @@ func (cl Client) CreateBackend(ctx context.Context, data map[string]interface{})
 	}
 	resp, err := cl.Client.Call(ctx, httpclient.CallParams{
 		Method:      "POST",
-		Path:        "/api/system/authentication/services/backends",
+		Path:        "/system/authentication/services/backends",
 		RequestBody: data,
 	})
 	return resp, err
@@ -49,8 +52,8 @@ func (cl Client) UpdateBackend(ctx context.Context, backendID string, data map[s
 		return nil, fmt.Errorf("request body is nil")
 	}
 	resp, err := cl.Client.Call(ctx, httpclient.CallParams{
-		Method:      "PUT",
-		Path:        "/api/system/authentication/services/backends/" + backendID,
+		Method:      "POST",
+		Path:        "/system/authentication/services/backends/" + backendID,
 		RequestBody: data,
 	})
 	return resp, err
@@ -59,7 +62,20 @@ func (cl Client) UpdateBackend(ctx context.Context, backendID string, data map[s
 func (cl Client) DeleteBackend(ctx context.Context, backendID string) (*http.Response, error) {
 	resp, err := cl.Client.Call(ctx, httpclient.CallParams{
 		Method: "DELETE",
-		Path:   "/api/system/authentication/services/backends/" + backendID,
+		Path:   "/system/authentication/services/backends/" + backendID,
+	})
+	return resp, err
+}
+
+func (cl Client) SetActiveBackend(ctx context.Context, backendID string) (*http.Response, error) {
+	type SetActiveRequest struct {
+		ActiveBackend string `json:"active_backend"`
+	}
+	req := SetActiveRequest{ActiveBackend: backendID}
+	resp, err := cl.Client.Call(ctx, httpclient.CallParams{
+		Method:      "POST",
+		Path:        "/system/authentication/services/configuration",
+		RequestBody: req,
 	})
 	return resp, err
 }

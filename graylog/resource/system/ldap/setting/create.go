@@ -16,32 +16,42 @@ func create(d *schema.ResourceData, m interface{}) error {
 		return err
 	}
 
-	// Look up the default role UUID
 	roleUUID, err := findRoleUUID(ctx, cl.LDAPSetting.Client, d.Get("default_role").(string))
 	if err != nil {
-		return fmt.Errorf("failed to find role '%s': %w", d.Get("default_role"), err)
+		return fmt.Errorf("failed to find role UUID for default role '%s': %w", d.Get("default_role").(string), err)
 	}
 
-	// Build the request body
 	requestBody := map[string]interface{}{
-		"title":                   d.Get("title"),
-		"type":                    "ldap",
-		"enabled":                 d.Get("enabled"),
-		"authentication_dn":       d.Get("authentication_username"),
-		"authentication_password": d.Get("authentication_password"),
-		"default_roles":           []string{roleUUID},
-		"config":                  buildLdapConfig(d),
+		"title":         d.Get("title"),
+		"default_roles": []string{roleUUID},
+		"config":        buildLdapConfig(d),
 	}
 
 	if _, err := cl.LDAPSetting.CreateBackend(ctx, requestBody); err != nil {
 		return fmt.Errorf("failed to create a LDAP backend: %w", err)
 	}
 
+	backends, _, err := cl.LDAPSetting.ListBackends(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to list LDAP backends after creation: %w", err)
+	}
+
+	title := d.Get("title").(string)
+	for _, b := range backends {
+		if b["title"] == title {
+			if backendID, ok := b["id"].(string); ok {
+				if _, err := cl.LDAPSetting.SetActiveBackend(ctx, backendID); err != nil {
+					return fmt.Errorf("failed to activate LDAP backend: %w", err)
+				}
+				break
+			}
+		}
+	}
+
 	d.SetId(ldapSettingID)
 	return read(d, m)
 }
 
-// buildLdapConfig builds the config object for the LDAP backend
 func buildLdapConfig(d *schema.ResourceData) map[string]interface{} {
 	scheme, host, port := parseServerURL(d.Get("server_url").(string))
 
@@ -52,10 +62,11 @@ func buildLdapConfig(d *schema.ResourceData) map[string]interface{} {
 				"port": port,
 			},
 		},
-		"type": "ldap",
+		"type":                 "ldap",
+		"system_user_dn":       d.Get("authentication_username").(string),
+		"system_user_password": d.Get("authentication_password").(string),
 	}
 
-	// Set transport_security based on scheme and start_tls
 	if scheme == "ldaps" {
 		config["transport_security"] = "tls"
 	} else if d.Get("start_tls").(bool) {
@@ -64,7 +75,6 @@ func buildLdapConfig(d *schema.ResourceData) map[string]interface{} {
 		config["transport_security"] = "none"
 	}
 
-	// Set optional config fields
 	if v := d.Get("user_id_attribute").(string); v != "" {
 		config["user_unique_id_attribute"] = v
 	}
@@ -82,18 +92,6 @@ func buildLdapConfig(d *schema.ResourceData) map[string]interface{} {
 	}
 	if v := d.Get("user_search_pattern").(string); v != "" {
 		config["user_search_pattern"] = v
-	}
-	if v := d.Get("connect_timeout").(int); v > 0 {
-		config["connect_timeout"] = v
-	}
-	if v := d.Get("request_timeout").(int); v > 0 {
-		config["request_timeout"] = v
-	}
-	if v := d.Get("referral").(string); v != "" {
-		config["referral"] = v
-	}
-	if v := d.Get("trust_fingerprint").(string); v != "" {
-		config["trust_fingerprint"] = v
 	}
 
 	return config

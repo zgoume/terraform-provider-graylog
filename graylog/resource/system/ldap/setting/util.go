@@ -158,7 +158,7 @@ func findRoleUUID(ctx context.Context, cl httpclient.Client, roleName string) (s
 	body := RolesResponse{}
 	resp, err := cl.Call(ctx, httpclient.CallParams{
 		Method:       "GET",
-		Path:         "/api/authz/roles?page=1&per_page=100",
+		Path:         "/authz/roles?page=1&per_page=100",
 		ResponseBody: &body,
 	})
 	if err != nil {
@@ -193,7 +193,7 @@ func fetchRoleMap(ctx context.Context, cl httpclient.Client) (map[string]string,
 	body := RolesResponse{}
 	resp, err := cl.Call(ctx, httpclient.CallParams{
 		Method:       "GET",
-		Path:         "/api/authz/roles?page=1&per_page=100",
+		Path:         "/authz/roles?page=1&per_page=100",
 		ResponseBody: &body,
 	})
 	if err != nil {

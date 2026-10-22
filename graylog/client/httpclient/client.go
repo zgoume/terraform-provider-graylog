@@ -164,8 +164,20 @@ func (client Client) Call(ctx context.Context, params CallParams) (*http.Respons
 	}
 
 	if params.ResponseBody != nil {
-		if err := json.NewDecoder(res.Body).Decode(params.ResponseBody); err != nil {
-			return res, fmt.Errorf("failed to read a response body as JSON: %w", err)
+		bodyBytes, err := io.ReadAll(res.Body)
+		if err != nil {
+			return res, &Error{
+				statusCode: res.StatusCode,
+				bodyByte:   bodyBytes,
+				err:        fmt.Errorf("failed to read response body: %w", err),
+			}
+		}
+		if err := json.Unmarshal(bodyBytes, params.ResponseBody); err != nil {
+			return res, &Error{
+				statusCode: res.StatusCode,
+				bodyByte:   bodyBytes,
+				err:        fmt.Errorf("failed to parse response body as JSON: %w", err),
+			}
 		}
 		return res, nil
 	}
